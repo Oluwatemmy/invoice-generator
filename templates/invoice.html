@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Invoice {{ invoice_number }}{% endblock %}
+{% block body %}
+
+<div class="page-actions no-print">
+  <a class="btn btn-ghost" href="{{ url_for('new_invoice') }}">New Invoice</a>
+  <button class="btn btn-primary" onclick="window.print()">Print to PDF</button>
+</div>
+
+<main class="invoice">
+  <hr class="top-rule">
+
+  <header class="invoice-header">
+    <h1>Invoice</h1>
+    <div class="logo">{{ biller.initial }}</div>
+  </header>
+
+  <dl class="meta">
+    <div><dt>Invoice number</dt><dd>{{ invoice_number }}</dd></div>
+    <div><dt>Date of issue</dt><dd>{{ issue_date }}</dd></div>
+    <div><dt>Date due</dt><dd>{{ due_date }}</dd></div>
+    {% if period_range %}<div><dt>Service period</dt><dd>{{ period_range }}</dd></div>{% endif %}
+  </dl>
+
+  <section class="parties">
+    <div class="party">
+      <div class="party-label">From</div>
+      <div class="name">{{ biller.name }}</div>
+      <div class="addr">{{ biller.address | replace('\n', '<br>') | safe }}</div>
+      {% if biller.country %}<div class="addr">{{ biller.country }}</div>{% endif %}
+      <div class="addr">{{ biller.email }}</div>
+    </div>
+    <div class="party">
+      <div class="party-label">Bill to</div>
+      <div class="name">{{ client.name }}</div>
+      {% if client.address %}<div class="addr">{{ client.address | replace('\n', '<br>') | safe }}</div>{% endif %}
+      {% if client.country %}<div class="addr">{{ client.country }}</div>{% endif %}
+      {% if client.email %}<div class="addr">{{ client.email }}</div>{% endif %}
+    </div>
+  </section>
+
+  <h2 class="hero"><span class="hero-amount">{{ total_formatted }}</span> <span class="hero-currency">USD</span> <span class="hero-due">due {{ due_date }}</span></h2>
+
+  <table class="lines">
+    <thead>
+      <tr>
+        <th class="col-desc">Description</th>
+        <th class="col-amount">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in line_items %}
+      <tr>
+        <td>
+          <div class="desc">{{ item.description }}</div>
+        </td>
+        <td class="col-amount">{{ item.amount_formatted }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr><th>Subtotal</th><td>{{ total_formatted }}</td></tr>
+    <tr class="total-row"><th>Total</th><td>{{ total_formatted }}</td></tr>
+    <tr class="due-row"><th>Amount due</th><td>{{ total_formatted }} USD</td></tr>
+  </table>
+
+  {% if bank.account_name or bank.name or bank.account_number or bank.routing_number or bank.account_address or bank.account_type %}
+  <section class="bank-details">
+    <div class="bank-label">Bank Details</div>
+    <div class="bank-grid">
+      {% if bank.account_name %}
+      <div class="bank-field">
+        <div class="bank-key">Account Name</div>
+        <div class="bank-value">{{ bank.account_name }}</div>
+      </div>
+      {% endif %}
+      {% if bank.name %}
+      <div class="bank-field">
+        <div class="bank-key">Bank Name</div>
+        <div class="bank-value">{{ bank.name }}</div>
+      </div>
+      {% endif %}
+      {% if bank.account_number %}
+      <div class="bank-field">
+        <div class="bank-key">Account Number</div>
+        <div class="bank-value mono">{{ bank.account_number }}</div>
+      </div>
+      {% endif %}
+      {% if bank.routing_number %}
+      <div class="bank-field">
+        <div class="bank-key">Routing Number</div>
+        <div class="bank-value mono">{{ bank.routing_number }}</div>
+      </div>
+      {% endif %}
+      {% if bank.account_type %}
+      <div class="bank-field">
+        <div class="bank-key">Account Type</div>
+        <div class="bank-value">{{ bank.account_type }}</div>
+      </div>
+      {% endif %}
+      <div class="bank-field">
+        <div class="bank-key">Pay By</div>
+        <div class="bank-value">{{ due_date }}</div>
+      </div>
+      {% if bank.account_address %}
+      <div class="bank-field full">
+        <div class="bank-key">Account Address</div>
+        <div class="bank-value">{{ bank.account_address | replace('\n', '<br>') | safe }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+</main>
+
+{% endblock %}

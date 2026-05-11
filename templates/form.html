@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}New invoice{% endblock %}
+{% block body %}
+<main class="form-page">
+  <header class="form-header">
+    <a class="back-link" href="{{ url_for('home') }}">&larr; Back</a>
+    <h1>New invoice</h1>
+  </header>
+
+  <form method="post" action="{{ url_for('generate') }}" class="invoice-form">
+    <section>
+      <h2>From</h2>
+      <div class="grid">
+        <label>
+          <span>Name</span>
+          <input type="text" name="biller_name" required>
+        </label>
+        <label>
+          <span>Email</span>
+          <input type="email" name="biller_email" required>
+        </label>
+        <label class="full">
+          <span>Address</span>
+          <textarea name="biller_address" rows="3" required></textarea>
+        </label>
+        <label>
+          <span>Country</span>
+          <input type="text" name="biller_country">
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Bill to</h2>
+      <div class="grid">
+        <label>
+          <span>Name</span>
+          <input type="text" name="client_name" required>
+        </label>
+        <label>
+          <span>Email</span>
+          <input type="email" name="client_email">
+        </label>
+        <label class="full">
+          <span>Address</span>
+          <textarea name="client_address" rows="3"></textarea>
+        </label>
+        <label>
+          <span>Country</span>
+          <input type="text" name="client_country">
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Details</h2>
+      <div class="grid">
+        <label>
+          <span>Date of issue</span>
+          <input type="date" name="issue_date" value="{{ default_issue }}" required>
+        </label>
+        <label>
+          <span>Date due</span>
+          <input type="date" name="due_date" value="{{ default_due }}" required>
+        </label>
+        <label>
+          <span>Service period start <em>(optional)</em></span>
+          <input type="date" name="period_start">
+        </label>
+        <label>
+          <span>Service period end <em>(optional)</em></span>
+          <input type="date" name="period_end">
+        </label>
+      </div>
+
+      <div class="line-items" id="lineItems">
+        <div class="line-item">
+          <label class="line-desc">
+            <span>Description</span>
+            <input type="text" name="description" placeholder="e.g. Web design" required>
+          </label>
+          <label class="line-amount">
+            <span>Amount (USD)</span>
+            <input type="number" name="amount" step="0.01" min="0" required>
+          </label>
+          <button type="button" class="remove-line" aria-label="Remove line">&times;</button>
+        </div>
+      </div>
+      <button type="button" id="addLine" class="btn-add-line">+ Add line</button>
+    </section>
+
+    <section>
+      <h2>Bank details <em>(optional)</em></h2>
+      <div class="grid">
+        <label>
+          <span>Account name</span>
+          <input type="text" name="account_name">
+        </label>
+        <label>
+          <span>Bank name</span>
+          <input type="text" name="bank_name" placeholder="e.g. Chase">
+        </label>
+        <label>
+          <span>Account number</span>
+          <input type="text" name="account_number" inputmode="numeric">
+        </label>
+        <label>
+          <span>Routing number</span>
+          <input type="text" name="routing_number" inputmode="numeric">
+        </label>
+        <label>
+          <span>Account type</span>
+          <select name="account_type">
+            <option value="">—</option>
+            <option value="Checking">Checking</option>
+            <option value="Savings">Savings</option>
+          </select>
+        </label>
+        <label class="full">
+          <span>Account address</span>
+          <textarea name="account_address" rows="3"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">Generate Invoice</button>
+    </div>
+  </form>
+</main>
+
+<script>
+(function () {
+  const lineItems = document.getElementById('lineItems');
+  const addBtn = document.getElementById('addLine');
+
+  function updateRemoveVisibility() {
+    const items = lineItems.querySelectorAll('.line-item');
+    items.forEach(item => {
+      const btn = item.querySelector('.remove-line');
+      btn.style.visibility = items.length > 1 ? 'visible' : 'hidden';
+    });
+  }
+
+  function bindRemove(btn) {
+    btn.addEventListener('click', () => {
+      btn.closest('.line-item').remove();
+      updateRemoveVisibility();
+    });
+  }
+
+  function makeLineItem() {
+    const div = document.createElement('div');
+    div.className = 'line-item';
+    div.innerHTML = `
+      <label class="line-desc">
+        <span>Description</span>
+        <input type="text" name="description" required>
+      </label>
+      <label class="line-amount">
+        <span>Amount (USD)</span>
+        <input type="number" name="amount" step="0.01" min="0" required>
+      </label>
+      <button type="button" class="remove-line" aria-label="Remove line">&times;</button>
+    `;
+    bindRemove(div.querySelector('.remove-line'));
+    return div;
+  }
+
+  addBtn.addEventListener('click', () => {
+    lineItems.appendChild(makeLineItem());
+    updateRemoveVisibility();
+  });
+
+  document.querySelectorAll('.line-item .remove-line').forEach(bindRemove);
+  updateRemoveVisibility();
+})();
+</script>
+{% endblock %}

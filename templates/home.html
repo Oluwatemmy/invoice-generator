@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Invoice Generator{% endblock %}
+{% block body %}
+<main class="home">
+  <h1>Invoice Generator</h1>
+  <p class="lead">Create a clean invoice in under a minute.</p>
+  <a class="btn btn-primary" href="{{ url_for('new_invoice') }}">Generate Invoice</a>
+</main>
+{% endblock %}
