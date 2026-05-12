@@ -1,22 +1,35 @@
 # Invoice Generator
 
-A minimal Flask app for generating clean, Resend-style invoices. Fill in a form, get a printable invoice, save it as a PDF via your browser. No external PDF library, no database, no accounts.
-
-Built for freelancers and small teams who want to bill clients quickly without signing up for a SaaS.
+A self-hostable Flask app for generating clean, Resend-style invoices. Sign up, save your clients and bank details, then create and track invoices with one-click duplicate and paid/unpaid status. Print to PDF via your browser — no PDF library required.
 
 ---
 
 ## Features
 
-- **One-page flow** — Home → Form → Rendered invoice → Print
-- **Multi-line items** — add as many `Description + Amount` rows as you need; totals sum automatically
-- **Auto-generated invoice numbers** — format `{INITIALS}-{YEAR}-{NNNN}`, where initials come from the biller's name and the counter persists across sessions
-- **Editable date of issue** — defaults to today, but you can backdate or forward-date
-- **Service period** — optional date range that appears in the invoice metadata
-- **Bank details section** — Account name, Bank name, Account number, Routing number, Account type, Account address (all optional, individually hidden when blank)
-- **Multi-biller support** — the From info is typed per invoice, so any team member can use the same instance
-- **Print-friendly** — `@media print` rules compress spacing so the invoice fits on a single A4 page
-- **Zero install on the client** — open in any modern browser, save to PDF via the native print dialog
+**Core**
+- Sign up / log in / log out — your data is isolated per account
+- One-page invoice form with multiple line items (auto-summed total)
+- Resend-style invoice layout — clean, professional, A4 print-ready
+
+**Speed-up workflows**
+- **Saved clients** — pick from a dropdown instead of retyping
+- **Saved team members** — for the "From" side when multiple people bill
+- **Saved bank profiles** — for the bank details section
+- **"Save as new"** checkboxes on the form — persist a one-off entry into the saved list
+- **Duplicate** any past invoice with one click; form pre-fills with the prior data
+
+**Tracking**
+- **Dashboard** — total billed / paid / outstanding with counts + recent invoices
+- **Invoice history** at `/invoices` with paid/unpaid filter
+- **Paid/Unpaid toggle** — flip status from the list or the invoice page
+- **Auto-generated invoice numbers** — format `{INITIALS}-{YEAR}-{NNNN}`, per-user counter
+
+**Production-ready**
+- **SQLite for local dev, Postgres in production** — same code, `DATABASE_URL` decides
+- CSRF protection on all forms
+- Password hashing via Werkzeug
+- Env-var secrets (no hardcoded credentials)
+- Print-friendly CSS — fits one A4 page with typical content
 
 ---
 
@@ -24,17 +37,20 @@ Built for freelancers and small teams who want to bill clients quickly without s
 
 ### Requirements
 - Python 3.10+
-- A modern browser (Chrome, Edge, Firefox, Safari)
+- A modern browser
 
-### Setup
+### Setup (Windows / PowerShell)
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+copy .env.example .env
 ```
 
-(On macOS/Linux, replace the activation line with `source .venv/bin/activate`.)
+On macOS/Linux, swap the activate line for `source .venv/bin/activate` and copy → `cp`.
+
+Optionally edit `.env` to set a real `SECRET_KEY` (generate with `python -c "import secrets; print(secrets.token_hex(32))"`). The default works for local dev.
 
 ### Run
 
@@ -42,43 +58,56 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Then open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser.
+Open <http://127.0.0.1:5000>. You'll be redirected to the login page — create an account, then you're in.
 
 ---
 
 ## How it works
 
-1. **Home** ([/](http://127.0.0.1:5000)) — A landing page with a single **"Generate Invoice"** button.
-2. **Form** ([/new](http://127.0.0.1:5000/new)) — Four sections:
-   - **From** — your name, email, address, country
-   - **Bill to** — your client's details
-   - **Details** — issue date, due date, optional service period, and one or more line items (`Description + Amount`). A **+ Add line** button inserts more rows; each row has an `×` to remove (hidden when only one line remains).
-   - **Bank details** *(optional)* — bank info for the client to pay you
-3. **Generate** — Submitting the form POSTs to `/generate`, which:
-   - Sums all line items to compute the total
-   - Generates the next invoice number from the biller's initials + year + persistent counter
-   - Renders the Resend-style invoice
-4. **Print to PDF** — On the invoice page, click **Print to PDF** to open the browser's print dialog. Choose **Save as PDF** as the destination.
+### First time
 
-> **Tip:** In Chrome/Edge's print dialog, expand **More settings** and uncheck **"Headers and footers"** to remove the auto-added date / URL / page numbers. Chrome remembers this setting.
+1. Sign up with email + password → land on the empty dashboard
+2. (Optional) Add a few saved entities to skip retyping later:
+   - **Team** → add yourself (name, email, address — used as the "From" on invoices)
+   - **Clients** → add the people you bill
+   - **Banks** → add a payment profile (account number, routing, etc.)
+
+### Creating an invoice
+
+1. Click **+ New invoice**
+2. Pick a saved team member from the **From** dropdown (or type fresh)
+3. Pick a saved client from the **Bill to** dropdown (or type fresh)
+4. Fill in dates, description(s), amount(s) — add more line items with **+ Add line**
+5. Pick a saved bank profile from the **Bank details** dropdown (or type fresh, or leave blank)
+6. Optionally tick any "Save as new …" checkbox to persist your typed info for next time
+7. Click **Generate Invoice** → land on the rendered invoice page
+
+### Print to PDF
+
+On the invoice page, click **Print to PDF** → your browser's print dialog opens → choose "Save as PDF".
+
+> **Tip:** In Chrome/Edge's print dialog → **More settings** → uncheck **"Headers and footers"** to remove the auto-added date/URL/page numbers. The setting is sticky.
+
+### Tracking & re-use
+
+- **Dashboard** (`/`) shows total billed, paid, outstanding + the last 5 invoices
+- **Invoices** (`/invoices`) lists everything, filter by Paid / Unpaid via the chips
+- From either page:
+  - **View** opens the full invoice (printable)
+  - **Mark paid / Mark unpaid** flips status (no page reload navigation hop)
+  - **Duplicate** opens a new-invoice form pre-filled with that invoice's data — adjust dates/amounts and submit
 
 ---
 
 ## Invoice numbering
 
-Format: **`{INITIALS}-{YEAR}-{NNNN}`** (e.g. `TD-2026-0007`)
+Format: **`{INITIALS}-{YEAR}-{NNNN}`** — e.g. `TD-2026-0007`
 
-- **Initials** — first letter of each word in the From name, uppercased, max 3 characters (`Tolga Doksanbir` → `TD`)
-- **Year** — current calendar year
-- **NNNN** — zero-padded sequential counter
+- **INITIALS** — first letter of each word in the From name, uppercased, max 3 (`Tolga Doksanbir` → `TD`)
+- **YEAR** — current calendar year
+- **NNNN** — zero-padded sequential counter, **per user, per year**
 
-The counter is stored in `counter.json` at the project root, keyed by year:
-
-```json
-{ "2026": 7 }
-```
-
-The counter increments by 1 every time an invoice is generated, regardless of who the biller is. To reset, delete `counter.json` (or edit it manually).
+The counter is stored in `users.invoice_counters` as a JSON column keyed by year (e.g. `{"2026": 7}`). To reset, edit the user row directly or open the database.
 
 ---
 
@@ -86,67 +115,119 @@ The counter increments by 1 every time an invoice is generated, regardless of wh
 
 ```
 invoice-generator/
-├── app.py                 # Flask routes + invoice number/counter logic
-├── counter.json           # Persistent invoice counter (auto-created)
-├── requirements.txt       # flask
-├── README.md
+├── app.py                       # create_app() factory + entry point
+├── extensions.py                # db, login_manager, csrf init
+├── models.py                    # SQLAlchemy models
+├── forms.py                     # Flask-WTF form classes
+├── routes/
+│   ├── auth.py                  # /signup, /login, /logout
+│   ├── invoices.py              # /, /new, /generate, /invoices, /invoices/<id>, …
+│   ├── clients.py               # /clients/* CRUD
+│   ├── team_members.py          # /team/* CRUD
+│   └── bank_profiles.py         # /bank-profiles/* CRUD
 ├── templates/
-│   ├── base.html          # Shared HTML skeleton
-│   ├── home.html          # Landing page
-│   ├── form.html          # Input form + line-item JS
-│   └── invoice.html       # Rendered invoice
-└── static/
-    └── style.css          # All styling (screen + print)
+│   ├── base.html                # Shared shell + top nav
+│   ├── dashboard.html
+│   ├── auth/
+│   │   ├── login.html
+│   │   └── signup.html
+│   ├── form.html                # The invoice form (handles new + duplicate flows)
+│   ├── invoice.html             # Rendered invoice (Resend-style, print-friendly)
+│   ├── invoices_list.html
+│   ├── clients_list.html        # + client_form.html
+│   ├── team_list.html           # + team_form.html
+│   └── bank_list.html           # + bank_form.html
+├── static/
+│   └── style.css                # All styling (screen + @media print)
+├── instance/                    # Auto-created. Holds SQLite DB. Gitignored.
+│   └── invoices.db
+├── .env                         # Local secrets (gitignored)
+├── .env.example                 # Template — commit this
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
-## Customization
+## Database
 
-All customization happens in a few well-defined places:
+SQLAlchemy + SQLite for dev, Postgres for prod. The `DATABASE_URL` env var picks the backend:
 
-| What | Where | How |
-|---|---|---|
-| Accent color | [static/style.css](static/style.css) | Edit the `--accent`, `--accent-hover`, `--accent-soft`, `--accent-ring` CSS variables in `:root` |
-| Invoice number prefix logic | [app.py](app.py) → `_next_invoice_number()` | Change how initials are derived or hardcode a different prefix |
-| Default due date | [app.py](app.py) → `new_invoice()` | Currently `today + 14 days`; adjust the `timedelta(days=14)` |
-| Currency | [app.py](app.py) → `generate()` and [templates/invoice.html](templates/invoice.html) | Replace `USD` and the `$` symbol |
-| Print page size / margins | [static/style.css](static/style.css) → `@media print` | Edit the `@page` block (`size: A4`, `margin: 12mm 14mm`) |
-| Top-of-form section labels | [templates/form.html](templates/form.html) | Edit the `<h2>` text in each section |
-| Logo content | [templates/invoice.html](templates/invoice.html) | The logo box uses the biller's first letter; change `.logo` background/styling in `static/style.css` |
+- **Unset** → SQLite at `instance/invoices.db` (default for local dev)
+- **`postgresql://...`** → Postgres (used in production)
+
+Schema (all per-user where applicable):
+
+- `users` — id, email, password_hash, name, invoice_counters (JSON)
+- `clients` — id, user_id, name, email, address, country
+- `team_members` — id, user_id, name, email, address, country
+- `bank_profiles` — id, user_id, label, account_name, bank_name, account_number, routing_number, account_address, account_type
+- `invoices` — id, user_id, invoice_number, issue_date, due_date, biller_data (JSON snapshot), client_data (JSON snapshot), bank_data (JSON snapshot), total, status
+- `invoice_line_items` — id, invoice_id, position, description, amount
+
+> **Why JSON snapshots?** Past invoices need to show what the client/biller/bank info looked like at the moment of creation. If you later edit a saved client, you don't want their old invoices to retroactively change. The saved-entity tables exist only to speed up filling out *new* invoices.
+
+Tables auto-create on first boot via `db.create_all()` inside `create_app()`. No migration tool yet — if you change a model, drop the DB and start fresh, or switch to Alembic later.
 
 ---
 
 ## Tech stack
 
-- **Backend:** Python 3 + [Flask](https://flask.palletsprojects.com/) (single file, ~80 lines)
+- **Backend:** Python 3.10+, [Flask](https://flask.palletsprojects.com/), [Flask-SQLAlchemy](https://flask-sqlalchemy.palletsprojects.com/), [Flask-Login](https://flask-login.readthedocs.io/), [Flask-WTF](https://flask-wtf.readthedocs.io/) (CSRF), [psycopg](https://www.psycopg.org/) (Postgres driver)
 - **Templates:** Jinja2 (Flask's default)
-- **Styling:** Plain CSS with custom properties — no preprocessor, no framework
-- **JavaScript:** Vanilla JS, only for the dynamic "+ Add line" / "× Remove" buttons on the form
-- **Persistence:** A single JSON file (`counter.json`) for the invoice counter
-- **PDF output:** Browser's native print-to-PDF — no `weasyprint`, `reportlab`, or headless Chrome involved
+- **Styling:** Plain CSS — no preprocessor, no framework
+- **JavaScript:** Vanilla JS, just for the form's dynamic line items and saved-entity picker auto-fill
+- **PDF output:** Browser's native print-to-PDF — no PDF library needed
+- **Config:** Env vars via `python-dotenv` (loads `.env` automatically in dev)
+
+---
+
+## Deploying to production
+
+The same code that ran on SQLite locally runs on Postgres in production. Generic recipe:
+
+1. Provision a Postgres database (Neon, Supabase, Render, Railway — all have free tiers).
+2. Set env vars on your host:
+   - `SECRET_KEY` — a real random string (`python -c "import secrets; print(secrets.token_hex(32))"`)
+   - `DATABASE_URL` — connection string from your provider
+3. Run with a real WSGI server:
+   ```bash
+   pip install gunicorn
+   gunicorn 'app:create_app()'
+   ```
+4. On first boot, tables auto-create. Open the deployed URL, sign up, and you're live.
+
+---
+
+## Customization
+
+| What | Where | How |
+|---|---|---|
+| Accent color | [static/style.css](static/style.css) | Edit `--accent`, `--accent-hover`, `--accent-soft`, `--accent-ring` in `:root` |
+| Invoice number format | [models.py](models.py) → `User.next_invoice_number` | Change the format string or how initials are derived |
+| Default due date | [routes/invoices.py](routes/invoices.py) → `_form_context` | Currently `today + 14 days` |
+| Currency | [routes/invoices.py](routes/invoices.py) + [templates/invoice.html](templates/invoice.html) | Replace `USD` and `$` (no per-invoice currency picker yet) |
+| Print page size / margins | [static/style.css](static/style.css) → `@media print { @page { … } }` | A4 by default |
+| Account-type options | [forms.py](forms.py) → `BankProfileForm.account_type.choices` | Currently `Checking` / `Savings` |
 
 ---
 
 ## FAQ
 
-**Why no database?**
-The only persistent state is a single integer (the invoice counter). A JSON file is simpler than running SQLite or Postgres for one number.
+**Can multiple people share one instance?**
+Yes — sign up gives each person their own isolated invoices, clients, team members, and bank profiles. The auth flow keeps them separated.
 
-**Why no PDF library?**
-Adding `weasyprint` or `wkhtmltopdf` means dealing with native dependencies (GTK/Cairo/Pango on Windows is painful). The browser's print-to-PDF produces identical output from the same HTML/CSS, so the library adds complexity without improving the result.
+**What if I add a model field?**
+You'll need to update the DB. Easiest path: delete `instance/invoices.db` (in dev) so it gets recreated. For production, add Alembic for migrations.
 
-**Can multiple people use the same instance?**
-Yes. The From fields are typed per invoice, so anyone can bill from this app. The counter is shared across all billers — invoices increment globally regardless of who creates them.
+**Why no email-the-invoice feature?**
+Out of scope for this iteration. It would require SMTP credentials and a PDF library. Browser-print-to-PDF + manual email works fine for low volume.
 
-**The invoice spills onto two pages when printing.**
-If you have many line items (typically 4+), the content may exceed one A4 page. The `@media print` rules in `static/style.css` already compress spacing — for very long invoices, reduce font sizes further or split into multiple invoices.
-
-**Can I email invoices automatically?**
-Not currently. That would require integrating a PDF library + an SMTP/Resend/Postmark API. The current setup is intentionally just a browser-driven generator.
+**The invoice overflows to 2 pages when printing.**
+Typical 1–3 line-item invoices fit on one A4 page. With many items (4+), reduce font sizes in `@media print` or split into multiple invoices.
 
 ---
 
 ## License
 
-MIT — see `LICENSE` if included, or feel free to add one.
+MIT (or your choice — add a `LICENSE` file).

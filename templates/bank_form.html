@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'new' %}New bank profile{% else %}Edit bank profile{% endif %}{% endblock %}
+{% block body %}
+<main class="form-page">
+  <header class="form-header">
+    <a class="back-link" href="{{ url_for('bank_profiles.index') }}">&larr; Back to bank profiles</a>
+    <h1>{% if mode == 'new' %}New bank profile{% else %}Edit bank profile{% endif %}</h1>
+  </header>
+
+  <form method="post" class="invoice-form">
+    {{ form.csrf_token }}
+    <div class="grid">
+      <label class="full">
+        <span>Label <em>(short name you'll recognize)</em></span>
+        {{ form.label(placeholder="e.g. Chase Checking") }}
+        {% for e in form.label.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Account name</span>
+        {{ form.account_name() }}
+        {% for e in form.account_name.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Bank name</span>
+        {{ form.bank_name() }}
+        {% for e in form.bank_name.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Account number</span>
+        {{ form.account_number(inputmode="numeric") }}
+        {% for e in form.account_number.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Routing number</span>
+        {{ form.routing_number(inputmode="numeric") }}
+        {% for e in form.routing_number.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Account type</span>
+        {{ form.account_type() }}
+        {% for e in form.account_type.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label class="full">
+        <span>Account address</span>
+        {{ form.account_address(rows=3) }}
+        {% for e in form.account_address.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">{% if mode == 'new' %}Add bank profile{% else %}Save changes{% endif %}</button>
+    </div>
+  </form>
+</main>
+{% endblock %}

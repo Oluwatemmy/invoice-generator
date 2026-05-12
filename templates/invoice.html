@@ -3,7 +3,19 @@
 {% block body %}
 
 <div class="page-actions no-print">
-  <a class="btn btn-ghost" href="{{ url_for('new_invoice') }}">New Invoice</a>
+  {% if invoice %}
+    <span class="badge badge-{{ invoice.status }}">{{ invoice.status }}</span>
+    <form method="post" action="{{ url_for('invoices.toggle_status', invoice_id=invoice.id) }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-ghost">
+        {% if invoice.status == 'unpaid' %}Mark as paid{% else %}Mark as unpaid{% endif %}
+      </button>
+    </form>
+  {% endif %}
+  <a class="btn btn-ghost" href="{{ url_for('invoices.list_invoices') }}">All invoices</a>
+  {% if invoice and invoice.status == 'unpaid' %}<a class="btn btn-ghost" href="{{ url_for('invoices.edit_invoice', invoice_id=invoice.id) }}">Edit</a>{% endif %}
+  {% if invoice %}<a class="btn btn-ghost" href="{{ url_for('invoices.duplicate_invoice', invoice_id=invoice.id) }}">Duplicate</a>{% endif %}
+  <a class="btn btn-ghost" href="{{ url_for('invoices.new_invoice') }}">New invoice</a>
   <button class="btn btn-primary" onclick="window.print()">Print to PDF</button>
 </div>
 

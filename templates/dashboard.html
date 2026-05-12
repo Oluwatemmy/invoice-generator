@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block body %}
+<main class="dashboard-page">
+  <header class="dashboard-header">
+    <div>
+      <h1>Welcome back, {{ current_user.name.split()[0] }}</h1>
+      <p class="dashboard-sub">Here's where your invoices stand.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('invoices.new_invoice') }}">+ New invoice</a>
+  </header>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total billed</div>
+      <div class="stat-value">{{ total_billed_fmt }}</div>
+      <div class="stat-sub">{{ paid_count + unpaid_count }} invoice{{ 's' if (paid_count + unpaid_count) != 1 }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Paid</div>
+      <div class="stat-value">{{ total_paid_fmt }}</div>
+      <div class="stat-sub">{{ paid_count }} invoice{{ 's' if paid_count != 1 }}</div>
+    </div>
+    <div class="stat-card stat-warn">
+      <div class="stat-label">Outstanding</div>
+      <div class="stat-value">{{ total_unpaid_fmt }}</div>
+      <div class="stat-sub">{{ unpaid_count }} invoice{{ 's' if unpaid_count != 1 }}</div>
+    </div>
+  </div>
+
+  <section class="dashboard-section">
+    <div class="dashboard-section-header">
+      <h2>Recent invoices</h2>
+      {% if recent %}<a class="link" href="{{ url_for('invoices.list_invoices') }}">View all</a>{% endif %}
+    </div>
+
+    {% if recent %}
+    <div class="list-card">
+      <table class="list-table">
+        <thead>
+          <tr>
+            <th>Invoice</th>
+            <th>Client</th>
+            <th>Issued</th>
+            <th class="num">Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent %}
+          <tr>
+            <td class="mono" data-label="Invoice"><a class="link" href="{{ url_for('invoices.view_invoice', invoice_id=r.id) }}">{{ r.number }}</a></td>
+            <td data-label="Client">{{ r.client_name }}</td>
+            <td data-label="Issued">{{ r.issue_date }}</td>
+            <td class="num" data-label="Amount">{{ r.total_formatted }}</td>
+            <td data-label="Status"><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No invoices yet. Create your first one to see it here.</p>
+      <a class="btn btn-primary" href="{{ url_for('invoices.new_invoice') }}">Create invoice</a>
+    </div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Clients{% endblock %}
+{% block body %}
+<main class="list-page">
+  <header class="list-header">
+    <h1>Clients</h1>
+    <a class="btn btn-primary" href="{{ url_for('clients.new') }}">+ Add client</a>
+  </header>
+
+  {% if clients %}
+  <div class="list-card">
+    <table class="list-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Country</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clients %}
+        <tr>
+          <td data-label="Name"><strong>{{ c.name }}</strong></td>
+          <td data-label="Email">{{ c.email or "—" }}</td>
+          <td data-label="Country">{{ c.country or "—" }}</td>
+          <td class="actions-col">
+            <a class="btn-action" href="{{ url_for('clients.edit', client_id=c.id) }}">Edit</a>
+            <form method="post" action="{{ url_for('clients.delete', client_id=c.id) }}" class="inline-form" onsubmit="return confirm('Delete this client?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn-action btn-action-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p>No saved clients yet. Add one to skip retyping their info on every invoice.</p>
+    <a class="btn btn-primary" href="{{ url_for('clients.new') }}">Add your first client</a>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}

@@ -1,55 +1,93 @@
 {% extends "base.html" %}
 {% block title %}New invoice{% endblock %}
 {% block body %}
+{% set pf = prefill or {} %}
+{% set pf_biller = pf.get('biller', {}) %}
+{% set pf_client = pf.get('client', {}) %}
+{% set pf_bank = pf.get('bank', {}) %}
+{% set pf_items = pf.get('line_items', []) %}
+
 <main class="form-page">
   <header class="form-header">
-    <a class="back-link" href="{{ url_for('home') }}">&larr; Back</a>
-    <h1>New invoice</h1>
+    <a class="back-link" href="{{ url_for('invoices.home') }}">&larr; Back</a>
+    <h1>{% if edit_mode %}Edit invoice{% elif pf %}Duplicate invoice{% else %}New invoice{% endif %}</h1>
   </header>
 
-  <form method="post" action="{{ url_for('generate') }}" class="invoice-form">
+  <form method="post" action="{{ form_action or url_for('invoices.generate') }}" class="invoice-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <section>
       <h2>From</h2>
+      {% if team_members %}
+      <label class="picker">
+        <span>Pick a saved team member <em>(optional)</em></span>
+        <select id="fromPicker">
+          <option value="">— or fill in below —</option>
+          {% for m in team_members %}<option value="{{ m.id }}">{{ m.name }}</option>{% endfor %}
+        </select>
+      </label>
+      {% endif %}
       <div class="grid">
         <label>
           <span>Name</span>
-          <input type="text" name="biller_name" required>
+          <input type="text" name="biller_name" value="{{ pf_biller.get('name', '') }}" required>
         </label>
         <label>
           <span>Email</span>
-          <input type="email" name="biller_email" required>
+          <input type="email" name="biller_email" value="{{ pf_biller.get('email', '') }}" required>
         </label>
         <label class="full">
           <span>Address</span>
-          <textarea name="biller_address" rows="3" required></textarea>
+          <textarea name="biller_address" rows="3" required>{{ pf_biller.get('address', '') }}</textarea>
         </label>
         <label>
           <span>Country</span>
-          <input type="text" name="biller_country">
+          <input type="text" name="biller_country" value="{{ pf_biller.get('country', '') }}">
         </label>
       </div>
+      {% if not edit_mode %}
+      <label class="save-row">
+        <input type="checkbox" name="save_team" value="1">
+        <span>Save this as a new team member</span>
+      </label>
+      {% endif %}
     </section>
 
     <section>
       <h2>Bill to</h2>
+      {% if clients %}
+      <label class="picker">
+        <span>Pick a saved client <em>(optional)</em></span>
+        <select id="billToPicker">
+          <option value="">— or fill in below —</option>
+          {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+        </select>
+      </label>
+      {% endif %}
       <div class="grid">
         <label>
           <span>Name</span>
-          <input type="text" name="client_name" required>
+          <input type="text" name="client_name" value="{{ pf_client.get('name', '') }}" required>
         </label>
         <label>
           <span>Email</span>
-          <input type="email" name="client_email">
+          <input type="email" name="client_email" value="{{ pf_client.get('email', '') }}">
         </label>
         <label class="full">
           <span>Address</span>
-          <textarea name="client_address" rows="3"></textarea>
+          <textarea name="client_address" rows="3">{{ pf_client.get('address', '') }}</textarea>
         </label>
         <label>
           <span>Country</span>
-          <input type="text" name="client_country">
+          <input type="text" name="client_country" value="{{ pf_client.get('country', '') }}">
         </label>
       </div>
+      {% if not edit_mode %}
+      <label class="save-row">
+        <input type="checkbox" name="save_client" value="1">
+        <span>Save this as a new client</span>
+      </label>
+      {% endif %}
     </section>
 
     <section>
@@ -57,80 +95,114 @@
       <div class="grid">
         <label>
           <span>Date of issue</span>
-          <input type="date" name="issue_date" value="{{ default_issue }}" required>
+          <input type="date" name="issue_date" value="{{ pf.get('issue_date') or default_issue }}" required>
         </label>
         <label>
           <span>Date due</span>
-          <input type="date" name="due_date" value="{{ default_due }}" required>
+          <input type="date" name="due_date" value="{{ pf.get('due_date') or default_due }}" required>
         </label>
         <label>
           <span>Service period start <em>(optional)</em></span>
-          <input type="date" name="period_start">
+          <input type="date" name="period_start" value="{{ pf.get('period_start', '') }}">
         </label>
         <label>
           <span>Service period end <em>(optional)</em></span>
-          <input type="date" name="period_end">
+          <input type="date" name="period_end" value="{{ pf.get('period_end', '') }}">
         </label>
       </div>
 
       <div class="line-items" id="lineItems">
-        <div class="line-item">
-          <label class="line-desc">
-            <span>Description</span>
-            <input type="text" name="description" placeholder="e.g. Web design" required>
-          </label>
-          <label class="line-amount">
-            <span>Amount (USD)</span>
-            <input type="number" name="amount" step="0.01" min="0" required>
-          </label>
-          <button type="button" class="remove-line" aria-label="Remove line">&times;</button>
-        </div>
+        {% if pf_items %}
+          {% for item in pf_items %}
+          <div class="line-item">
+            <label class="line-desc">
+              <span>Description</span>
+              <input type="text" name="description" value="{{ item.description }}" required>
+            </label>
+            <label class="line-amount">
+              <span>Amount (USD)</span>
+              <input type="number" name="amount" step="0.01" min="0" value="{{ item.amount }}" required>
+            </label>
+            <button type="button" class="remove-line" aria-label="Remove line">&times;</button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="line-item">
+            <label class="line-desc">
+              <span>Description</span>
+              <input type="text" name="description" placeholder="e.g. Web design" required>
+            </label>
+            <label class="line-amount">
+              <span>Amount (USD)</span>
+              <input type="number" name="amount" step="0.01" min="0" required>
+            </label>
+            <button type="button" class="remove-line" aria-label="Remove line">&times;</button>
+          </div>
+        {% endif %}
       </div>
       <button type="button" id="addLine" class="btn-add-line">+ Add line</button>
     </section>
 
     <section>
       <h2>Bank details <em>(optional)</em></h2>
+      {% if bank_profiles %}
+      <label class="picker">
+        <span>Pick a saved bank profile <em>(optional)</em></span>
+        <select id="bankPicker">
+          <option value="">— or fill in below —</option>
+          {% for p in bank_profiles %}<option value="{{ p.id }}">{{ p.label }}</option>{% endfor %}
+        </select>
+      </label>
+      {% endif %}
       <div class="grid">
         <label>
           <span>Account name</span>
-          <input type="text" name="account_name">
+          <input type="text" name="account_name" value="{{ pf_bank.get('account_name', '') }}">
         </label>
         <label>
           <span>Bank name</span>
-          <input type="text" name="bank_name" placeholder="e.g. Chase">
+          <input type="text" name="bank_name" value="{{ pf_bank.get('name', '') }}" placeholder="e.g. Chase">
         </label>
         <label>
           <span>Account number</span>
-          <input type="text" name="account_number" inputmode="numeric">
+          <input type="text" name="account_number" value="{{ pf_bank.get('account_number', '') }}" inputmode="numeric">
         </label>
         <label>
           <span>Routing number</span>
-          <input type="text" name="routing_number" inputmode="numeric">
+          <input type="text" name="routing_number" value="{{ pf_bank.get('routing_number', '') }}" inputmode="numeric">
         </label>
         <label>
           <span>Account type</span>
           <select name="account_type">
             <option value="">—</option>
-            <option value="Checking">Checking</option>
-            <option value="Savings">Savings</option>
+            <option value="Checking" {% if pf_bank.get('account_type') == 'Checking' %}selected{% endif %}>Checking</option>
+            <option value="Savings" {% if pf_bank.get('account_type') == 'Savings' %}selected{% endif %}>Savings</option>
           </select>
         </label>
         <label class="full">
           <span>Account address</span>
-          <textarea name="account_address" rows="3"></textarea>
+          <textarea name="account_address" rows="3">{{ pf_bank.get('account_address', '') }}</textarea>
         </label>
       </div>
+      {% if not edit_mode %}
+      <label class="save-row">
+        <input type="checkbox" name="save_bank" value="1">
+        <span>Save these details as a new bank profile</span>
+      </label>
+      {% endif %}
     </section>
 
     <div class="actions">
-      <button type="submit" class="btn btn-primary">Generate Invoice</button>
+      <button type="submit" class="btn btn-primary">{% if edit_mode %}Save changes{% else %}Generate Invoice{% endif %}</button>
     </div>
   </form>
 </main>
 
+<script id="entitiesData" type="application/json">{{ entities | tojson }}</script>
+
 <script>
 (function () {
+  /* Repeatable line items */
   const lineItems = document.getElementById('lineItems');
   const addBtn = document.getElementById('addLine');
 
@@ -174,6 +246,48 @@
 
   document.querySelectorAll('.line-item .remove-line').forEach(bindRemove);
   updateRemoveVisibility();
+
+  /* Saved-entity auto-fill */
+  const ENTITIES = JSON.parse(
+    document.getElementById('entitiesData').textContent || '{}'
+  );
+
+  function setValue(name, value) {
+    const el = document.querySelector(`[name="${name}"]`);
+    if (el) el.value = value || '';
+  }
+
+  document.getElementById('fromPicker')?.addEventListener('change', (e) => {
+    const id = parseInt(e.target.value, 10);
+    const m = (ENTITIES.team_members || []).find(x => x.id === id);
+    if (!m) return;
+    setValue('biller_name', m.name);
+    setValue('biller_email', m.email);
+    setValue('biller_address', m.address);
+    setValue('biller_country', m.country);
+  });
+
+  document.getElementById('billToPicker')?.addEventListener('change', (e) => {
+    const id = parseInt(e.target.value, 10);
+    const c = (ENTITIES.clients || []).find(x => x.id === id);
+    if (!c) return;
+    setValue('client_name', c.name);
+    setValue('client_email', c.email);
+    setValue('client_address', c.address);
+    setValue('client_country', c.country);
+  });
+
+  document.getElementById('bankPicker')?.addEventListener('change', (e) => {
+    const id = parseInt(e.target.value, 10);
+    const b = (ENTITIES.bank_profiles || []).find(x => x.id === id);
+    if (!b) return;
+    setValue('account_name', b.account_name);
+    setValue('bank_name', b.bank_name);
+    setValue('account_number', b.account_number);
+    setValue('routing_number', b.routing_number);
+    setValue('account_address', b.account_address);
+    setValue('account_type', b.account_type);
+  });
 })();
 </script>
 {% endblock %}

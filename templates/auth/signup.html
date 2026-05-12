@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Create account{% endblock %}
+{% block body %}
+<main class="auth">
+  <div class="auth-card">
+    <h1>Create your account</h1>
+    <p class="auth-sub">Start sending clean invoices in a minute.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post" class="auth-form">
+      {{ form.csrf_token }}
+      <label>
+        <span>Name</span>
+        {{ form.name(placeholder="John Doe", autocomplete="name") }}
+        {% for e in form.name.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Email</span>
+        {{ form.email(placeholder="you@example.com", autocomplete="email") }}
+        {% for e in form.email.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Password</span>
+        {{ form.password(placeholder="At least 6 characters", autocomplete="new-password") }}
+        {% for e in form.password.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Confirm password</span>
+        {{ form.confirm(autocomplete="new-password") }}
+        {% for e in form.confirm.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    </form>
+
+    <p class="alt-action">
+      Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+    </p>
+  </div>
+</main>
+{% endblock %}

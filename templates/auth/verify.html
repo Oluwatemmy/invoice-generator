@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Verify your email{% endblock %}
+{% block body %}
+<main class="auth">
+  <div class="auth-card">
+    <h1>Verify your email</h1>
+    <p class="auth-sub">
+      We sent a 6-digit code to <strong>{{ email }}</strong>. Enter it below to finish setting up your account.
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post" class="auth-form">
+      {{ form.csrf_token }}
+      <label>
+        <span>6-digit code</span>
+        {{ form.code(placeholder="000000", inputmode="numeric", autocomplete="one-time-code", maxlength="6", class="code-input") }}
+        {% for e in form.code.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Verify</button>
+    </form>
+
+    <form method="post" action="{{ url_for('auth.resend_code') }}" class="resend-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="link-button">Didn't get it? Resend code</button>
+    </form>
+
+    <p class="alt-action">
+      Wrong account? <a href="{{ url_for('auth.logout') }}">Sign out</a>
+    </p>
+  </div>
+</main>
+{% endblock %}
