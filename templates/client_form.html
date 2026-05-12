@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'new' %}New client{% else %}Edit client{% endif %}{% endblock %}
+{% block body %}
+<main class="form-page">
+  <header class="form-header">
+    <a class="back-link" href="{{ url_for('clients.index') }}">&larr; Back to clients</a>
+    <h1>{% if mode == 'new' %}New client{% else %}Edit client{% endif %}</h1>
+  </header>
+
+  <form method="post" class="invoice-form">
+    {{ form.csrf_token }}
+    <div class="grid">
+      <label>
+        <span>Name</span>
+        {{ form.name() }}
+        {% for e in form.name.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Email</span>
+        {{ form.email() }}
+        {% for e in form.email.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label class="full">
+        <span>Address</span>
+        {{ form.address(rows=3) }}
+        {% for e in form.address.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Country</span>
+        {{ form.country() }}
+        {% for e in form.country.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">{% if mode == 'new' %}Add client{% else %}Save changes{% endif %}</button>
+    </div>
+  </form>
+</main>
+{% endblock %}

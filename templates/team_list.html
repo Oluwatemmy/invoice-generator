@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Team{% endblock %}
+{% block body %}
+<main class="list-page">
+  <header class="list-header">
+    <h1>Team members</h1>
+    <a class="btn btn-primary" href="{{ url_for('team_members.new') }}">+ Add team member</a>
+  </header>
+
+  {% if members %}
+  <div class="list-card">
+    <table class="list-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Country</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td data-label="Name"><strong>{{ m.name }}</strong></td>
+          <td data-label="Email">{{ m.email or "—" }}</td>
+          <td data-label="Country">{{ m.country or "—" }}</td>
+          <td class="actions-col">
+            <a class="btn-action" href="{{ url_for('team_members.edit', member_id=m.id) }}">Edit</a>
+            <form method="post" action="{{ url_for('team_members.delete', member_id=m.id) }}" class="inline-form" onsubmit="return confirm('Delete this team member?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn-action btn-action-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p>No team members saved. Add yourself or a teammate to skip retyping the From info each time.</p>
+    <a class="btn btn-primary" href="{{ url_for('team_members.new') }}">Add a team member</a>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}

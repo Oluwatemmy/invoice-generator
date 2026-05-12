@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Bank profiles{% endblock %}
+{% block body %}
+<main class="list-page">
+  <header class="list-header">
+    <h1>Bank profiles</h1>
+    <a class="btn btn-primary" href="{{ url_for('bank_profiles.new') }}">+ Add bank profile</a>
+  </header>
+
+  {% if profiles %}
+  <div class="list-card">
+    <table class="list-table">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Bank</th>
+          <th>Account</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in profiles %}
+        <tr>
+          <td data-label="Label"><strong>{{ p.label }}</strong></td>
+          <td data-label="Bank">{{ p.bank_name or "—" }}</td>
+          <td class="mono" data-label="Account">{{ p.account_number or "—" }}</td>
+          <td class="actions-col">
+            <a class="btn-action" href="{{ url_for('bank_profiles.edit', profile_id=p.id) }}">Edit</a>
+            <form method="post" action="{{ url_for('bank_profiles.delete', profile_id=p.id) }}" class="inline-form" onsubmit="return confirm('Delete this bank profile?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn-action btn-action-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p>No bank profiles saved. Add one to auto-fill bank details on invoices.</p>
+    <a class="btn btn-primary" href="{{ url_for('bank_profiles.new') }}">Add a bank profile</a>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}
