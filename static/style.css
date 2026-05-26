@@ -195,6 +195,17 @@ html, body {
   color: var(--ink-soft);
   font-size: 13px;
 }
+.login-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.forgot-link {
+  font-size: 13px;
+  font-weight: 600;
+}
 .auth-form input[type="email"],
 .auth-form input[type="text"],
 .auth-form input[type="password"] {

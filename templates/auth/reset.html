@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Set a new password{% endblock %}
+{% block body %}
+<main class="auth">
+  <div class="auth-card">
+    <h1>Set a new password</h1>
+    <p class="auth-sub">For <strong>{{ email }}</strong>. Choose something at least 8 characters long.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post" class="auth-form">
+      {{ form.csrf_token }}
+      <label>
+        <span>New password</span>
+        {{ form.password(placeholder="At least 8 characters", autocomplete="new-password") }}
+        {% for e in form.password.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <label>
+        <span>Confirm new password</span>
+        {{ form.confirm(autocomplete="new-password") }}
+        {% for e in form.confirm.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Update password</button>
+    </form>
+  </div>
+</main>
+{% endblock %}

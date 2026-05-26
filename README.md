@@ -8,6 +8,8 @@ A self-hostable Flask app for generating clean, Resend-style invoices. Sign up, 
 
 **Core**
 - Sign up / log in / log out — your data is isolated per account
+- Email verification on signup (6-digit code via Resend, 15-min TTL, rate-limited)
+- Forgot password flow — emailed reset link with 1-hour TTL
 - One-page invoice form with multiple line items (auto-summed total)
 - Resend-style invoice layout — clean, professional, A4 print-ready
 
@@ -167,7 +169,28 @@ Schema (all per-user where applicable):
 
 > **Why JSON snapshots?** Past invoices need to show what the client/biller/bank info looked like at the moment of creation. If you later edit a saved client, you don't want their old invoices to retroactively change. The saved-entity tables exist only to speed up filling out *new* invoices.
 
-Tables auto-create on first boot via `db.create_all()` inside `create_app()`. No migration tool yet — if you change a model, drop the DB and start fresh, or switch to Alembic later.
+Schema is managed by **Alembic** via [Flask-Migrate](https://flask-migrate.readthedocs.io/). The first migration creates every table; new model changes get their own migration.
+
+### Migration workflow
+
+```powershell
+# First-time setup on a fresh DB (local or prod): apply all migrations
+flask --app app:create_app db upgrade
+
+# After you change a model in models.py:
+flask --app app:create_app db migrate -m "Describe the change"
+flask --app app:create_app db upgrade
+
+# Check the current revision a DB is at
+flask --app app:create_app db current
+
+# Roll back one revision
+flask --app app:create_app db downgrade -1
+```
+
+On production, the [`Procfile`](Procfile) runs `flask db upgrade` automatically before each release on Render/Railway/Heroku.
+
+> Already had a DB before Alembic landed? It's been stamped at the initial revision (`b104108bb31f`). Future model changes just need a new migration on top.
 
 ---
 
@@ -188,14 +211,14 @@ The same code that ran on SQLite locally runs on Postgres in production. Generic
 
 1. Provision a Postgres database (Neon, Supabase, Render, Railway — all have free tiers).
 2. Set env vars on your host:
+   - `FLASK_ENV=production` — turns on prod cookie flags + ProxyFix
    - `SECRET_KEY` — a real random string (`python -c "import secrets; print(secrets.token_hex(32))"`)
    - `DATABASE_URL` — connection string from your provider
-3. Run with a real WSGI server:
-   ```bash
-   pip install gunicorn
-   gunicorn 'app:create_app()'
-   ```
-4. On first boot, tables auto-create. Open the deployed URL, sign up, and you're live.
+   - `RESEND_API_KEY` + `FROM_EMAIL` — for verification & reset emails
+3. The included `Procfile` handles the rest:
+   - `release: flask --app app:create_app db upgrade` — runs migrations on each deploy
+   - `web: gunicorn 'app:create_app()' ...` — boots the server
+4. Open the deployed URL, sign up, and you're live.
 
 ---
 
@@ -222,6 +245,9 @@ You'll need to update the DB. Easiest path: delete `instance/invoices.db` (in de
 
 **Why no email-the-invoice feature?**
 Out of scope for this iteration. It would require SMTP credentials and a PDF library. Browser-print-to-PDF + manual email works fine for low volume.
+
+**Local emails fail with `SSLCertVerificationError` on Windows.**
+Python on Windows sometimes can't validate Resend's TLS cert. For local dev, set `MAIL_TO_CONSOLE=1` in `.env` to print emails to your terminal instead of calling Resend. Production on Linux is fine.
 
 **The invoice overflows to 2 pages when printing.**
 Typical 1–3 line-item invoices fit on one A4 page. With many items (4+), reduce font sizes in `@media print` or split into multiple invoices.

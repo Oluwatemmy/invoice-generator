@@ -65,6 +65,10 @@
               Duplicate
             </a>
             <a class="btn-action btn-action-primary" href="{{ url_for('invoices.view_invoice', invoice_id=row.id) }}">View</a>
+            <form method="post" action="{{ url_for('invoices.delete_invoice', invoice_id=row.id) }}" class="inline-form" onsubmit="return confirm('Delete invoice {{ row.number }}? This cannot be undone.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn-action btn-action-danger">Delete</button>
+            </form>
           </td>
         </tr>
         {% endfor %}

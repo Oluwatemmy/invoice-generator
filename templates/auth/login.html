@@ -24,9 +24,12 @@
         {{ form.password(placeholder="••••••••", autocomplete="current-password") }}
         {% for e in form.password.errors %}<small class="err">{{ e }}</small>{% endfor %}
       </label>
-      <label class="checkbox">
-        {{ form.remember }} <span>Remember me</span>
-      </label>
+      <div class="login-row">
+        <label class="checkbox">
+          {{ form.remember }} <span>Remember me</span>
+        </label>
+        <a class="link forgot-link" href="{{ url_for('auth.forgot') }}">Forgot password?</a>
+      </div>
       <button type="submit" class="btn btn-primary btn-block">Sign in</button>
     </form>
 
