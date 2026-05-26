@@ -11,20 +11,26 @@ body {
   background: #fff;
 }
 
-/* Header: title on the left, logo on the right.
-   WeasyPrint's flexbox doesn't reliably honor `justify-content: space-between`,
-   so we use floats instead. */
+/* Header: title flows normally, logo is absolutely positioned to the top-right.
+   Floats + overflow:hidden don't create a containing block in WeasyPrint, so
+   the next block (.meta) would overlap the header. Absolute positioning sidesteps
+   that entirely. */
 .invoice-header {
   display: block !important;
-  overflow: hidden;
+  position: relative;
   margin-bottom: 16px;
+  padding-right: 64px; /* leave room for the logo */
+  min-height: 48px;     /* matches the logo height so layout stays predictable */
 }
 .invoice-header h1 {
-  float: left;
+  float: none !important;
   margin: 0;
 }
 .invoice-header .logo {
-  float: right;
+  float: none !important;
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 
 /* Parties: two columns side-by-side. */
