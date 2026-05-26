@@ -2,6 +2,7 @@
 {% block title %}Invoice {{ invoice_number }}{% endblock %}
 {% block body %}
 
+{% if not pdf_mode %}
 <div class="page-actions no-print">
   {% if invoice %}
     <span class="badge badge-{{ invoice.status }}">{{ invoice.status }}</span>
@@ -22,8 +23,13 @@
     <button type="submit" class="btn btn-ghost">Delete</button>
   </form>
   {% endif %}
+  {% if is_production and invoice %}
+  <a class="btn btn-primary" href="{{ url_for('invoices.invoice_pdf', invoice_id=invoice.id) }}">Download PDF</a>
+  {% else %}
   <button class="btn btn-primary" onclick="window.print()">Print to PDF</button>
+  {% endif %}
 </div>
+{% endif %}
 
 <main class="invoice">
   <hr class="top-rule">

@@ -94,6 +94,10 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(team_members_bp)
     app.register_blueprint(bank_profiles_bp)
 
+    @app.context_processor
+    def _inject_globals():
+        return {"is_production": _is_production()}
+
     @app.route("/healthz")
     def healthz():
         # Liveness probe for Render. Kept deliberately light — no DB hit so a

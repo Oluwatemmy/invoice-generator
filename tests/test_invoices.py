@@ -305,6 +305,70 @@ def test_invoice_rejects_long_biller_address(app, client):
     assert b"1000 characters or less" in resp.data
 
 
+def test_pdf_route_returns_503_when_weasyprint_unavailable(app, client, monkeypatch):
+    """On Windows local dev WeasyPrint usually isn't installed; the route must
+    fail gracefully with 503, not 500."""
+    signup_and_login(app, client)
+    client.post("/generate", data=_invoice_form_data())
+    with app.app_context():
+        from models import Invoice
+        inv_id = Invoice.query.first().id
+
+    # Force the ImportError path regardless of whether weasyprint is installed locally
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "weasyprint" or name.startswith("weasyprint."):
+            raise ImportError("simulated for test")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    resp = client.get(f"/invoices/{inv_id}/pdf")
+    assert resp.status_code == 503
+
+
+def test_pdf_route_serves_pdf_when_weasyprint_available(app, client):
+    """If WeasyPrint can import + render in this environment, the route returns a PDF."""
+    try:
+        import weasyprint  # noqa: F401
+        weasyprint.HTML(string="<p>ok</p>").write_pdf()
+    except Exception:
+        import pytest
+        pytest.skip("WeasyPrint not functional in this environment (typical on Windows)")
+
+    signup_and_login(app, client)
+    client.post("/generate", data=_invoice_form_data())
+    with app.app_context():
+        from models import Invoice
+        inv = Invoice.query.first()
+        inv_id, inv_number = inv.id, inv.invoice_number
+
+    resp = client.get(f"/invoices/{inv_id}/pdf")
+    assert resp.status_code == 200
+    assert resp.mimetype == "application/pdf"
+    assert resp.data[:4] == b"%PDF"
+    assert f"invoice-{inv_number}.pdf" in resp.headers["Content-Disposition"]
+
+
+def test_pdf_route_scoped_to_owner(app, client):
+    """User B cannot download user A's invoice PDF."""
+    signup_and_login(app, client, email="a@a.com")
+    client.post("/generate", data=_invoice_form_data())
+    with app.app_context():
+        from models import Invoice
+        inv_id = Invoice.query.first().id
+    client.get("/logout")
+
+    from tests.conftest import login, signup, verify
+    signup(client, email="b@b.com", name="B")
+    verify(app, client, email="b@b.com")
+    login(client, email="b@b.com")
+
+    resp = client.get(f"/invoices/{inv_id}/pdf")
+    assert resp.status_code == 404
+
+
 def test_save_as_new_persists_entities(app, client):
     signup_and_login(app, client)
     data = _invoice_form_data()

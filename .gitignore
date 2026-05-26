@@ -16,8 +16,10 @@ instance/
 *.sqlite
 *.sqlite3
 
-# Environment variables
+# Environment variables (allow .env.example as the public template)
 .env
+.env.*
+!.env.example
 
 # Legacy counter (replaced by DB)
 counter.json

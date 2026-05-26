@@ -10,7 +10,17 @@ MAX_NAME_LENGTH = 255
 MAX_DESCRIPTION_LENGTH = 500
 MAX_AMOUNT = Decimal("99999999.99")  # fits Numeric(10, 2)
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    abort,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 from sqlalchemy import func, or_
 
@@ -473,6 +483,34 @@ def view_invoice(invoice_id: int):
     if inv is None:
         abort(404)
     return render_template("invoice.html", **_build_invoice_context(inv))
+
+
+@bp.route("/invoices/<int:invoice_id>/pdf")
+@login_required
+def invoice_pdf(invoice_id: int):
+    inv = Invoice.query.filter_by(id=invoice_id, user_id=current_user.id).first()
+    if inv is None:
+        abort(404)
+    try:
+        from weasyprint import HTML  # type: ignore
+    except ImportError:
+        current_app.logger.warning(
+            "WeasyPrint not available — server-side PDF unavailable in this environment."
+        )
+        abort(503)
+
+    html = render_template(
+        "invoice.html",
+        pdf_mode=True,
+        **_build_invoice_context(inv),
+    )
+    pdf_bytes = HTML(string=html, base_url=request.url_root).write_pdf()
+    filename = f"invoice-{inv.invoice_number}.pdf"
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @bp.route("/invoices/<int:invoice_id>/status", methods=["POST"])
