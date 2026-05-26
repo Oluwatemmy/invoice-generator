@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 from sqlalchemy.exc import IntegrityError
 
@@ -492,7 +493,7 @@ def invoice_pdf(invoice_id: int):
     if inv is None:
         abort(404)
     try:
-        from weasyprint import HTML  # type: ignore
+        from weasyprint import CSS, HTML  # type: ignore
     except ImportError:
         current_app.logger.warning(
             "WeasyPrint not available — server-side PDF unavailable in this environment."
@@ -504,7 +505,19 @@ def invoice_pdf(invoice_id: int):
         pdf_mode=True,
         **_build_invoice_context(inv),
     )
-    pdf_bytes = HTML(string=html, base_url=request.url_root).write_pdf()
+    # Apply PDF-specific layout overrides (swap CSS grid for floats etc.)
+    pdf_override_path = (
+        Path(current_app.static_folder) / "invoice_pdf.css"
+        if current_app.static_folder
+        else None
+    )
+    extra_stylesheets = []
+    if pdf_override_path and pdf_override_path.exists():
+        extra_stylesheets.append(CSS(filename=str(pdf_override_path)))
+
+    pdf_bytes = HTML(string=html, base_url=request.url_root).write_pdf(
+        stylesheets=extra_stylesheets
+    )
     filename = f"invoice-{inv.invoice_number}.pdf"
     return Response(
         pdf_bytes,

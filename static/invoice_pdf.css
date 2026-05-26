@@ -1,0 +1,82 @@
+/* PDF-only overrides for WeasyPrint. Loaded ONLY by the /invoices/<id>/pdf
+   route, never by the browser. WeasyPrint's CSS Grid support is incomplete,
+   so we swap grid layouts for floats / flex which it handles reliably. */
+
+@page {
+  size: A4;
+  margin: 16mm 14mm;
+}
+
+body {
+  background: #fff;
+}
+
+/* Header: title on the left, logo on the right.
+   WeasyPrint's flexbox doesn't reliably honor `justify-content: space-between`,
+   so we use floats instead. */
+.invoice-header {
+  display: block !important;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.invoice-header h1 {
+  float: left;
+  margin: 0;
+}
+.invoice-header .logo {
+  float: right;
+}
+
+/* Parties: two columns side-by-side. */
+.parties {
+  display: block !important;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.party {
+  width: 48%;
+  box-sizing: border-box;
+  display: inline-block;
+  vertical-align: top;
+}
+.party:first-child {
+  padding-right: 4%;
+}
+
+/* Bank details: 2-column grid with one full-width row at the end. */
+.bank-grid {
+  display: block !important;
+  overflow: hidden;
+}
+.bank-field {
+  float: left;
+  width: 50%;
+  box-sizing: border-box;
+  padding-right: 24px;
+  margin-bottom: 14px;
+  display: block;
+}
+.bank-field.full {
+  float: none;
+  width: 100%;
+  clear: both;
+  padding-right: 0;
+}
+
+/* Totals: keep right-aligned but ensure proper width in PDF. */
+.totals {
+  width: 50%;
+  margin-left: auto;
+}
+
+/* Keep line-items table tidy and avoid odd page breaks. */
+.lines tbody tr,
+.lines tbody tr td {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Defensive: hide anything tagged as no-print, even if @media print didn't apply. */
+.no-print {
+  display: none !important;
+}
