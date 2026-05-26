@@ -1,12 +1,18 @@
 import secrets
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from flask_login import UserMixin
+from sqlalchemy import Index, func
+from sqlalchemy.orm import validates
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from extensions import db, login_manager
 
 VERIFICATION_CODE_TTL_MINUTES = 15
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class User(UserMixin, db.Model):
@@ -18,9 +24,15 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(255), nullable=False)
     invoice_counters = db.Column(db.JSON, default=dict, nullable=False)
     email_verified = db.Column(db.Boolean, default=False, nullable=False)
-    verification_code = db.Column(db.String(10), nullable=True)
+    # Stored as a Werkzeug password hash. Column kept as "verification_code"
+    # for backwards-compatibility with existing SQLite DBs.
+    verification_code_hash = db.Column("verification_code", db.String(255), nullable=True)
     verification_code_expires_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+    __table_args__ = (
+        Index("ix_users_email_lower", func.lower(email), unique=True),
+    )
 
     clients = db.relationship(
         "Client", backref="user", cascade="all, delete-orphan", lazy=True
@@ -35,6 +47,12 @@ class User(UserMixin, db.Model):
         "Invoice", backref="user", cascade="all, delete-orphan", lazy=True
     )
 
+    @validates("email")
+    def _normalize_email(self, _key, value):
+        if value is None:
+            return value
+        return value.strip().lower()
+
     def set_password(self, raw_password: str) -> None:
         self.password_hash = generate_password_hash(raw_password)
 
@@ -42,24 +60,29 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, raw_password)
 
     def generate_verification_code(self) -> str:
-        """Generate a fresh 6-digit code, store with TTL, return it for emailing."""
+        """Generate a fresh 6-digit code, store its hash with TTL, return the raw code for emailing."""
         code = f"{secrets.randbelow(1_000_000):06d}"
-        self.verification_code = code
-        self.verification_code_expires_at = datetime.utcnow() + timedelta(
+        self.verification_code_hash = generate_password_hash(code)
+        self.verification_code_expires_at = _utcnow() + timedelta(
             minutes=VERIFICATION_CODE_TTL_MINUTES
         )
         return code
 
     def verify_code(self, code: str) -> bool:
-        """Validate a submitted code. On success, marks email verified and clears the code."""
-        if not (self.verification_code and self.verification_code_expires_at):
+        """Validate a submitted code. On success, marks email verified and clears the stored hash."""
+        if not (self.verification_code_hash and self.verification_code_expires_at):
             return False
-        if datetime.utcnow() > self.verification_code_expires_at:
+        if _utcnow() > self.verification_code_expires_at:
             return False
-        if code.strip() != self.verification_code:
+        try:
+            ok = check_password_hash(self.verification_code_hash, (code or "").strip())
+        except (ValueError, TypeError):
+            # Pre-hash legacy value in the column — refuse, user can resend.
+            return False
+        if not ok:
             return False
         self.email_verified = True
-        self.verification_code = None
+        self.verification_code_hash = None
         self.verification_code_expires_at = None
         return True
 
@@ -89,7 +112,7 @@ class Client(db.Model):
     email = db.Column(db.String(255), default="", nullable=False)
     address = db.Column(db.Text, default="", nullable=False)
     country = db.Column(db.String(120), default="", nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
 
 class TeamMember(db.Model):
@@ -103,7 +126,7 @@ class TeamMember(db.Model):
     email = db.Column(db.String(255), default="", nullable=False)
     address = db.Column(db.Text, default="", nullable=False)
     country = db.Column(db.String(120), default="", nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
 
 class BankProfile(db.Model):
@@ -120,7 +143,7 @@ class BankProfile(db.Model):
     routing_number = db.Column(db.String(120), default="", nullable=False)
     account_address = db.Column(db.Text, default="", nullable=False)
     account_type = db.Column(db.String(60), default="", nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
 
 class Invoice(db.Model):
@@ -140,7 +163,7 @@ class Invoice(db.Model):
     bank_data = db.Column(db.JSON, default=dict, nullable=False)
     total = db.Column(db.Numeric(10, 2), nullable=False)
     status = db.Column(db.String(20), default="unpaid", nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
     line_items = db.relationship(
         "InvoiceLineItem",

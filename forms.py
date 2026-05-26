@@ -22,7 +22,7 @@ class SignupForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired(), Length(max=255)])
     email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
     password = PasswordField(
-        "Password", validators=[DataRequired(), Length(min=6, max=128)]
+        "Password", validators=[DataRequired(), Length(min=8, max=128)]
     )
     confirm = PasswordField(
         "Confirm Password",
@@ -30,7 +30,8 @@ class SignupForm(FlaskForm):
     )
 
     def validate_email(self, field):
-        existing = User.query.filter_by(email=field.data.lower()).first()
+        normalized = (field.data or "").strip().lower()
+        existing = User.query.filter_by(email=normalized).first()
         if existing:
             raise ValidationError("An account with that email already exists.")
 
@@ -39,6 +40,20 @@ class LoginForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired()])
     remember = BooleanField("Remember me")
+
+
+class ForgotPasswordForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
+
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField(
+        "New password", validators=[DataRequired(), Length(min=8, max=128)]
+    )
+    confirm = PasswordField(
+        "Confirm new password",
+        validators=[DataRequired(), EqualTo("password", message="Passwords must match.")],
+    )
 
 
 class VerifyCodeForm(FlaskForm):

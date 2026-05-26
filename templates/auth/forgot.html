@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Reset your password{% endblock %}
+{% block body %}
+<main class="auth">
+  <div class="auth-card">
+    <h1>Forgot your password?</h1>
+    <p class="auth-sub">Enter your email and we'll send you a reset link.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post" class="auth-form">
+      {{ form.csrf_token }}
+      <label>
+        <span>Email</span>
+        {{ form.email(placeholder="you@example.com", autocomplete="email") }}
+        {% for e in form.email.errors %}<small class="err">{{ e }}</small>{% endfor %}
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Send reset link</button>
+    </form>
+
+    <p class="alt-action">
+      Remembered it? <a href="{{ url_for('auth.login') }}">Sign in</a>
+    </p>
+  </div>
+</main>
+{% endblock %}

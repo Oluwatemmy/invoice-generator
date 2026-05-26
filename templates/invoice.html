@@ -16,6 +16,12 @@
   {% if invoice and invoice.status == 'unpaid' %}<a class="btn btn-ghost" href="{{ url_for('invoices.edit_invoice', invoice_id=invoice.id) }}">Edit</a>{% endif %}
   {% if invoice %}<a class="btn btn-ghost" href="{{ url_for('invoices.duplicate_invoice', invoice_id=invoice.id) }}">Duplicate</a>{% endif %}
   <a class="btn btn-ghost" href="{{ url_for('invoices.new_invoice') }}">New invoice</a>
+  {% if invoice %}
+  <form method="post" action="{{ url_for('invoices.delete_invoice', invoice_id=invoice.id) }}" class="inline-form" onsubmit="return confirm('Delete invoice {{ invoice_number }}? This cannot be undone.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-ghost">Delete</button>
+  </form>
+  {% endif %}
   <button class="btn btn-primary" onclick="window.print()">Print to PDF</button>
 </div>
 
@@ -78,7 +84,7 @@
     <tr class="due-row"><th>Amount due</th><td>{{ total_formatted }} USD</td></tr>
   </table>
 
-  {% if bank.account_name or bank.name or bank.account_number or bank.routing_number or bank.account_address or bank.account_type %}
+  {% if bank.account_name or bank.bank_name or bank.account_number or bank.routing_number or bank.account_address or bank.account_type %}
   <section class="bank-details">
     <div class="bank-label">Bank Details</div>
     <div class="bank-grid">
@@ -88,10 +94,10 @@
         <div class="bank-value">{{ bank.account_name }}</div>
       </div>
       {% endif %}
-      {% if bank.name %}
+      {% if bank.bank_name %}
       <div class="bank-field">
         <div class="bank-key">Bank Name</div>
-        <div class="bank-value">{{ bank.name }}</div>
+        <div class="bank-value">{{ bank.bank_name }}</div>
       </div>
       {% endif %}
       {% if bank.account_number %}
