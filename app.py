@@ -30,6 +30,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     os.makedirs(app.instance_path, exist_ok=True)
 
     db_url = os.environ.get("DATABASE_URL")
+    # Heroku/Render historically emit "postgres://" — SQLAlchemy needs "postgresql://".
     if db_url and db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
 
