@@ -1,6 +1,18 @@
 from tests.conftest import login, signup, signup_and_login, verify
 
 
+def test_healthz_returns_ok(client):
+    resp = client.get("/healthz")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"status": "ok"}
+
+
+def test_healthz_works_without_auth(client):
+    # Render's pings come from an unauthenticated source — must not redirect.
+    resp = client.get("/healthz", follow_redirects=False)
+    assert resp.status_code == 200
+
+
 def test_login_page_renders(client):
     resp = client.get("/login")
     assert resp.status_code == 200

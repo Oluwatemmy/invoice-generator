@@ -14,6 +14,7 @@ _VERIFICATION_ALLOWED_ENDPOINTS = {
     "auth.verify",
     "auth.resend_code",
     "auth.logout",
+    "healthz",
     "static",
 }
 
@@ -91,6 +92,12 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(clients_bp)
     app.register_blueprint(team_members_bp)
     app.register_blueprint(bank_profiles_bp)
+
+    @app.route("/healthz")
+    def healthz():
+        # Liveness probe for Render. Kept deliberately light — no DB hit so a
+        # database blip doesn't make the platform restart the web service.
+        return {"status": "ok"}, 200
 
     @app.before_request
     def _gate_unverified_users():

@@ -215,10 +215,11 @@ The same code that ran on SQLite locally runs on Postgres in production. Generic
    - `SECRET_KEY` — a real random string (`python -c "import secrets; print(secrets.token_hex(32))"`)
    - `DATABASE_URL` — connection string from your provider
    - `RESEND_API_KEY` + `FROM_EMAIL` — for verification & reset emails
-3. The included `Procfile` handles the rest:
+3. Python version: pinned in [`.python-version`](.python-version) (Render reads this file directly; `runtime.txt` is no longer supported there).
+4. The included `Procfile` handles the rest:
    - `release: flask --app app:create_app db upgrade` — runs migrations on each deploy
    - `web: gunicorn 'app:create_app()' ...` — boots the server
-4. Open the deployed URL, sign up, and you're live.
+5. Open the deployed URL, sign up, and you're live.
 
 ---
 
